@@ -6,6 +6,11 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
 import TurnosPage from './pages/dashboard/TurnosPage';
+import ClientesPage from './pages/dashboard/ClientesPage';
+import AbogadosPage from './pages/dashboard/AbogadosPage';
+import ReportesPage from './pages/dashboard/ReportesPage';
+
+
 
 
 const ProtectedRoute = ({ children, roles }: { children: React.ReactNode; roles?: string[] }) => {
@@ -39,6 +44,21 @@ function AppRoutes() {
       <Route path="/dashboard/turnos" element={
         <ProtectedRoute>
           <TurnosPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/clientes" element={
+        <ProtectedRoute>
+          <ClientesPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/abogados" element={
+        <ProtectedRoute>
+          <AbogadosPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/reportes" element={
+        <ProtectedRoute>
+          <ReportesPage />
         </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
