@@ -9,6 +9,8 @@ import TurnosPage from './pages/dashboard/TurnosPage';
 import ClientesPage from './pages/dashboard/ClientesPage';
 import AbogadosPage from './pages/dashboard/AbogadosPage';
 import ReportesPage from './pages/dashboard/ReportesPage';
+import ConfiguracionPage from './pages/dashboard/ConfiguracionPage';
+
 
 
 
@@ -59,6 +61,11 @@ function AppRoutes() {
       <Route path="/dashboard/reportes" element={
         <ProtectedRoute>
           <ReportesPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/configuracion" element={
+        <ProtectedRoute>
+          <ConfiguracionPage />
         </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
