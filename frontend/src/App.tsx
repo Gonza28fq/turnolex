@@ -5,6 +5,8 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
+import TurnosPage from './pages/dashboard/TurnosPage';
+
 
 const ProtectedRoute = ({ children, roles }: { children: React.ReactNode; roles?: string[] }) => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -32,6 +34,11 @@ function AppRoutes() {
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <AdminDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/turnos" element={
+        <ProtectedRoute>
+          <TurnosPage />
         </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
