@@ -2,13 +2,14 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IEstudio extends Document {
   nombre: string;
-  slug: string; // identificador único ej: "estudio-garcia"
+  slug: string;
   email: string;
   telefono?: string;
   direccion?: string;
-  logo?: string; // URL de Cloudinary
+  logo?: string;
   plan: 'free' | 'pro';
   activo: boolean;
+  aprobado: boolean;
   createdAt: Date;
 }
 
@@ -21,6 +22,7 @@ const EstudioSchema = new Schema<IEstudio>({
   logo: { type: String },
   plan: { type: String, enum: ['free', 'pro'], default: 'free' },
   activo: { type: Boolean, default: true },
+  aprobado: { type: Boolean, default: false },
 }, { timestamps: true });
 
 export default mongoose.model<IEstudio>('Estudio', EstudioSchema);

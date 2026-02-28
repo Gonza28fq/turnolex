@@ -6,6 +6,7 @@ import authRoutes from './routes/auth';
 import turnoRoutes from './routes/turnos';
 import userRoutes from './routes/users';
 import estudioRoutes from './routes/estudios';
+import adminRoutes from './routes/admin';
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/turnos', turnoRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/estudios', estudioRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Iniciar servidor
 app.listen(PORT, () => {
