@@ -180,3 +180,37 @@ export const deleteUsuario = async (req: AuthRequest, res: Response): Promise<vo
     res.status(500).json({ success: false, message: 'Error al eliminar usuario', error: error.message });
   }
 };
+// Cambiar contraseña
+export const changePassword = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { passwordActual, passwordNueva } = req.body;
+
+    if (!passwordActual || !passwordNueva) {
+      res.status(400).json({ success: false, message: 'Todos los campos son obligatorios' });
+      return;
+    }
+    if (passwordNueva.length < 6) {
+      res.status(400).json({ success: false, message: 'La contraseña debe tener al menos 6 caracteres' });
+      return;
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+      return;
+    }
+
+    const ok = await bcrypt.compare(passwordActual, user.password);
+    if (!ok) {
+      res.status(401).json({ success: false, message: 'La contraseña actual es incorrecta' });
+      return;
+    }
+
+    user.password = await bcrypt.hash(passwordNueva, 12);
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Contraseña actualizada correctamente' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Error al cambiar contraseña', error: error.message });
+  }
+};

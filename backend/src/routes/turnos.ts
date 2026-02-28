@@ -8,6 +8,7 @@ import {
   getMisTurnos,
 } from '../controllers/turnoController';
 import { authenticate, authorize } from '../middleware/auth';
+import { getTurnoPDF } from '../controllers/turnoController';
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.get('/:id', getTurnoById);
 router.post('/', authorize('admin', 'cliente'), createTurno);
 router.put('/:id/estado', authorize('admin', 'abogado'), updateTurnoEstado);
 router.delete('/:id', authorize('admin'), deleteTurno);
+router.get('/:id/pdf', authenticate, getTurnoPDF);
 
 export default router;

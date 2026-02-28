@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -15,7 +16,10 @@ const estadoColors: Record<string, string> = {
   completado: '#16a34a',
   cancelado: '#ef4444',
 };
-
+type DetailItem = {
+  label: string;
+  value: ReactNode;
+};
 export default function TurnosPage() {
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -170,20 +174,31 @@ export default function TurnosPage() {
 
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={labelStyle}><User size={12} style={{ display: 'inline', marginRight: '4px' }} />Abogado</label>
+                <label style={labelStyle}>
+                  <User size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                  Abogado
+                </label>
                 <select value={form.abogadoId} onChange={e => setForm({ ...form, abogadoId: e.target.value })} required style={inputStyle}>
                   <option value="">Seleccioná un abogado</option>
-                  {abogados.map(a => <option key={a._id} value={a._id}>{a.nombre}</option>)}
+                  {abogados.map(a => (
+                    <option key={a._id} value={a._id}>{a.nombre}</option>
+                  ))}
                 </select>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 <div>
-                  <label style={labelStyle}><Calendar size={12} style={{ display: 'inline', marginRight: '4px' }} />Fecha</label>
+                  <label style={labelStyle}>
+                    <Calendar size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                    Fecha
+                  </label>
                   <input type="date" value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} required style={inputStyle} />
                 </div>
                 <div>
-                  <label style={labelStyle}><Clock size={12} style={{ display: 'inline', marginRight: '4px' }} />Hora</label>
+                  <label style={labelStyle}>
+                    <Clock size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                    Hora
+                  </label>
                   <input type="time" value={form.hora} onChange={e => setForm({ ...form, hora: e.target.value })} required style={inputStyle} />
                 </div>
               </div>
@@ -199,18 +214,33 @@ export default function TurnosPage() {
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={labelStyle}><FileText size={12} style={{ display: 'inline', marginRight: '4px' }} />Motivo de consulta</label>
+                <label style={labelStyle}>
+                  <FileText size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                  Motivo de consulta
+                </label>
                 <input type="text" value={form.motivo} onChange={e => setForm({ ...form, motivo: e.target.value })} placeholder="Ej: Consulta laboral" required style={inputStyle} />
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={labelStyle}>Número de caso <span style={{ color: '#9ca3af', fontWeight: 400 }}>(opcional)</span></label>
+                <label style={labelStyle}>
+                  Número de caso{' '}
+                  <span style={{ color: '#9ca3af', fontWeight: 400 }}>(opcional)</span>
+                </label>
                 <input type="text" value={form.numeroCaso} onChange={e => setForm({ ...form, numeroCaso: e.target.value })} placeholder="Ej: EXP-2026-001" style={inputStyle} />
               </div>
 
               <div style={{ marginBottom: '24px' }}>
-                <label style={labelStyle}>Notas <span style={{ color: '#9ca3af', fontWeight: 400 }}>(opcional)</span></label>
-                <textarea value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })} placeholder="Información adicional..." rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+                <label style={labelStyle}>
+                  Notas{' '}
+                  <span style={{ color: '#9ca3af', fontWeight: 400 }}>(opcional)</span>
+                </label>
+                <textarea
+                  value={form.notas}
+                  onChange={e => setForm({ ...form, notas: e.target.value })}
+                  placeholder="Información adicional..."
+                  rows={3}
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                />
               </div>
 
               <div style={{ display: 'flex', gap: '12px' }}>
@@ -230,39 +260,144 @@ export default function TurnosPage() {
 
       {/* Modal detalle turno */}
       {selectedTurno && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-          <div style={{ background: 'white', borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '440px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1f2937' }}>Detalle del turno</h2>
-              <button onClick={() => setSelectedTurno(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+          }}
+        >
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '20px',
+              padding: '32px',
+              width: '100%',
+              maxWidth: '440px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '24px',
+              }}
+            >
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1f2937' }}>
+                Detalle del turno
+              </h2>
+
+              <button
+                onClick={() => setSelectedTurno(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#6b7280',
+                }}
+              >
                 <X size={20} />
               </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: estadoColors[selectedTurno.estado] + '20', color: estadoColors[selectedTurno.estado], padding: '4px 12px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 600, width: 'fit-content' }}>
-                {selectedTurno.estado.charAt(0).toUpperCase() + selectedTurno.estado.slice(1)}
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: estadoColors[selectedTurno.estado] + '20',
+                  color: estadoColors[selectedTurno.estado],
+                  padding: '4px 12px',
+                  borderRadius: '999px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  width: 'fit-content',
+                }}
+              >
+                {selectedTurno.estado.charAt(0).toUpperCase() +
+                  selectedTurno.estado.slice(1)}
               </div>
 
-              {[
-                { label: 'Cliente', value: selectedTurno.cliente?.nombre },
-                { label: 'Abogado', value: selectedTurno.abogado?.nombre },
-                { label: 'Fecha', value: new Date(selectedTurno.fecha).toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) },
-                { label: 'Hora', value: new Date(selectedTurno.fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) },
-                { label: 'Duración', value: `${selectedTurno.duracion} minutos` },
-                { label: 'Motivo', value: selectedTurno.motivo },
-                selectedTurno.numeroCaso ? { label: 'Nº Caso', value: selectedTurno.numeroCaso } : null,
-                selectedTurno.notas ? { label: 'Notas', value: selectedTurno.notas } : null,
-              ].filter(Boolean).map((item: any) => (
-                <div key={item.label} style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '8px', fontSize: '0.9rem' }}>
-                  <span style={{ color: '#6b7280', fontWeight: 500 }}>{item.label}</span>
-                  <span style={{ color: '#1f2937', fontWeight: 500 }}>{item.value}</span>
+               {([
+                    { label: 'Cliente', value: selectedTurno.cliente?.nombre },
+                    { label: 'Abogado', value: selectedTurno.abogado?.nombre },
+                    { label: 'Duración', value: `${selectedTurno.duracion} minutos` },
+                    { label: 'Fecha', value: new Date(selectedTurno.fecha).toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) },
+                    { label: 'Hora', value: new Date(selectedTurno.fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) },
+                    selectedTurno.numeroCaso
+                      ? { label: 'Nº Caso', value: selectedTurno.numeroCaso }
+                      : undefined,
+                    selectedTurno.notas
+                      ? { label: 'Notas', value: selectedTurno.notas }
+                      : undefined,
+                  ] as (DetailItem | undefined)[])
+                    .filter((item): item is DetailItem => item !== undefined)
+                    .map((item) => (
+                  <div
+                  key={item.label}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '100px 1fr',
+                    gap: '8px',
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  <span style={{ color: '#6b7280', fontWeight: 500 }}>
+                    {item.label}
+                  </span>
+                  <span style={{ color: '#1f2937', fontWeight: 500 }}>
+                    {item.value}
+                  </span>
                 </div>
-              ))}
+                ))}
             </div>
 
-            <button onClick={() => setSelectedTurno(null)}
-              style={{ width: '100%', marginTop: '24px', padding: '11px', background: '#1f2937', color: 'white', fontWeight: 600, borderRadius: '10px', border: 'none', cursor: 'pointer' }}>
+            {/* BOTÓN PDF */}
+            <a
+              href={`http://localhost:5000/api/turnos/${selectedTurno._id}/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'block',
+                width: '100%',
+                marginTop: '16px',
+                padding: '11px',
+                background: '#f9fafb',
+                color: '#1f2937',
+                fontWeight: 600,
+                borderRadius: '10px',
+                border: '1px solid #e5e7eb',
+                cursor: 'pointer',
+                textAlign: 'center',
+                textDecoration: 'none',
+                fontSize: '0.9rem',
+                boxSizing: 'border-box',
+              }}
+            >
+              📄 Descargar PDF
+            </a>
+
+            <button
+              onClick={() => setSelectedTurno(null)}
+              style={{
+                width: '100%',
+                marginTop: '8px',
+                padding: '11px',
+                background: '#1f2937',
+                color: 'white',
+                fontWeight: 600,
+                borderRadius: '10px',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
               Cerrar
             </button>
           </div>
