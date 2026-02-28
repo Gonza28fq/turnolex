@@ -43,5 +43,6 @@ const EstudioSchema = new mongoose_1.Schema({
     logo: { type: String },
     plan: { type: String, enum: ['free', 'pro'], default: 'free' },
     activo: { type: Boolean, default: true },
+    aprobado: { type: Boolean, default: false },
 }, { timestamps: true });
 exports.default = mongoose_1.default.model('Estudio', EstudioSchema);

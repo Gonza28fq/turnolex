@@ -8,6 +8,7 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 const Estudio_1 = __importDefault(require("../models/Estudio"));
+const email_1 = require("../utils/email");
 const generateToken = (id, rol, estudioId) => {
     return jsonwebtoken_1.default.sign({ id, rol, estudioId }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
@@ -30,12 +31,13 @@ const registerEstudio = async (req, res) => {
             .toLowerCase()
             .replace(/\s+/g, '-')
             .replace(/[^a-z0-9-]/g, '') + '-' + Date.now();
-        // Crear estudio
+        // Crear estudio con aprobado: false
         const estudio = await Estudio_1.default.create({
             nombre: nombreEstudio,
             slug,
             email,
             telefono,
+            aprobado: false,
         });
         // Hash password
         const hashedPassword = await bcryptjs_1.default.hash(password, 12);
@@ -48,24 +50,67 @@ const registerEstudio = async (req, res) => {
             estudio: estudio._id,
             telefono,
         });
-        const token = generateToken(admin._id.toString(), admin.rol, estudio._id.toString());
+        // Email al superadmin
+        const superadminEmail = process.env.SUPERADMIN_EMAIL;
+        const backendUrl = process.env.BACKEND_URL;
+        try {
+            await email_1.transporter.sendMail({
+                from: `"TurnoLex" <${process.env.EMAIL_USER}>`,
+                to: superadminEmail,
+                subject: '🏛 Nuevo estudio pendiente de aprobación — TurnoLex',
+                html: `
+          <div style="font-family: Segoe UI, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 32px;">
+            <div style="background: linear-gradient(135deg, #1f2937, #374151); padding: 28px; border-radius: 16px 16px 0 0; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 1.5rem;">
+                ⚖️ Turno<span style="color: #d97706;">Lex</span>
+              </h1>
+              <p style="color: rgba(255,255,255,0.7); margin: 8px 0 0;">Panel de Superadmin</p>
+            </div>
+            <div style="background: white; padding: 32px; border-radius: 0 0 16px 16px; border: 1px solid #e5e7eb; border-top: none;">
+              <h2 style="color: #1f2937; margin: 0 0 8px;">🏛 Nuevo estudio registrado</h2>
+              <p style="color: #6b7280; margin: 0 0 24px;">Un nuevo estudio solicita acceso a TurnoLex.</p>
+              <div style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb; margin-bottom: 28px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 0.875rem; width: 120px;">🏛 Estudio</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${nombreEstudio}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 0.875rem;">👤 Admin</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${nombreAdmin}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 0.875rem;">📧 Email</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${email}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 0.875rem;">📞 Teléfono</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${telefono || '—'}</td>
+                  </tr>
+                </table>
+              </div>
+              <div style="display: flex; gap: 12px;">
+                <a href="${backendUrl}/api/admin/estudios/${estudio._id}/aprobar"
+                   style="display: inline-block; background: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1rem; margin-right: 12px;">
+                  ✅ Aprobar estudio
+                </a>
+                <a href="${backendUrl}/api/admin/estudios/${estudio._id}/rechazar"
+                   style="display: inline-block; background: #dc2626; color: white; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1rem;">
+                  ❌ Rechazar estudio
+                </a>
+              </div>
+            </div>
+          </div>
+        `,
+            });
+        }
+        catch (emailErr) {
+            console.error('Error enviando email al superadmin:', emailErr);
+        }
         res.status(201).json({
             success: true,
-            message: 'Estudio registrado exitosamente',
-            data: {
-                token,
-                user: {
-                    id: admin._id,
-                    nombre: admin.nombre,
-                    email: admin.email,
-                    rol: admin.rol,
-                },
-                estudio: {
-                    id: estudio._id,
-                    nombre: estudio.nombre,
-                    slug: estudio.slug,
-                }
-            }
+            message: 'Registro exitoso. Tu estudio está pendiente de aprobación. Te notificaremos por email.',
+            data: { pendienteAprobacion: true }
         });
     }
     catch (error) {
@@ -93,6 +138,16 @@ const login = async (req, res) => {
         const passwordOk = await bcryptjs_1.default.compare(password, user.password);
         if (!passwordOk) {
             res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
+            return;
+        }
+        // Verificar aprobación del estudio
+        const estudio = await Estudio_1.default.findById(user.estudio?._id);
+        if (estudio && !estudio.aprobado) {
+            res.status(403).json({
+                success: false,
+                message: 'Tu estudio está pendiente de aprobación. Te notificaremos por email cuando esté listo.',
+                pendienteAprobacion: true
+            });
             return;
         }
         const estudioId = user.estudio?._id?.toString();
