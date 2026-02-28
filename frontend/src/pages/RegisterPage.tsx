@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Scale, Mail, Lock, Eye, EyeOff, User, Phone, Building2 } from 'lucide-react';
+import { Scale, Mail, Lock, Eye, EyeOff, User, Phone, Building2, Clock } from 'lucide-react';
 import { useAuth } from '../context/authContext';
 
 export default function RegisterPage() {
@@ -18,7 +18,8 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [step, setStep] = useState(1); // 2 pasos
+  const [step, setStep] = useState(1);
+  const [pendiente, setPendiente] = useState(false);
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,14 +46,19 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await registerEstudio({
+      const result = await registerEstudio({
         nombreEstudio: form.nombreEstudio,
         nombreAdmin: form.nombreAdmin,
         email: form.email,
         password: form.password,
         telefono: form.telefono,
       });
-      navigate('/dashboard');
+
+      if (result?.pendienteAprobacion) {
+        setPendiente(true);
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al registrar el estudio');
     } finally {
@@ -78,6 +84,36 @@ export default function RegisterPage() {
     color: '#374151',
     marginBottom: '8px',
   };
+
+  // Pantalla de espera
+  if (pendiente) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1f2937 0%, #374151 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Segoe UI, system-ui, sans-serif' }}>
+        <div style={{ width: '100%', maxWidth: '480px', background: 'white', borderRadius: '20px', padding: '48px 36px', boxShadow: '0 4px 24px rgba(0,0,0,0.2)', textAlign: 'center' }}>
+          <div style={{ width: '72px', height: '72px', background: '#fef3c7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+            <Clock size={36} color="#d97706" />
+          </div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1f2937', margin: '0 0 12px' }}>
+            ¡Registro exitoso!
+          </h2>
+          <p style={{ color: '#6b7280', fontSize: '0.95rem', lineHeight: 1.6, margin: '0 0 24px' }}>
+            Tu estudio <strong>{form.nombreEstudio}</strong> fue registrado correctamente. Estamos revisando los datos y te notificaremos a <strong>{form.email}</strong> cuando esté aprobado.
+          </p>
+          <div style={{ background: '#fef9ee', border: '1px solid #fde68a', borderRadius: '12px', padding: '16px', marginBottom: '28px' }}>
+            <p style={{ color: '#92400e', fontSize: '0.875rem', margin: 0 }}>
+              ⏱ El proceso de aprobación suele tardar menos de 24 horas hábiles.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/login')}
+            style={{ background: '#d97706', color: 'white', border: 'none', borderRadius: '10px', padding: '12px 28px', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer' }}
+          >
+            Ir al login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1f2937 0%, #374151 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Segoe UI, system-ui, sans-serif' }}>
