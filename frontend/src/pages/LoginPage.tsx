@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Scale, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Scale, Mail, Lock, Eye, EyeOff, Clock } from 'lucide-react';
 import { useAuth } from '../context/authContext';
 
 export default function LoginPage() {
@@ -11,20 +11,56 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [pendiente, setPendiente] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setPendiente(false);
     setLoading(true);
     try {
       await login(form.email, form.password);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al iniciar sesión');
+      if (err.response?.data?.pendienteAprobacion) {
+        setPendiente(true);
+      } else {
+        setError(err.response?.data?.message || 'Error al iniciar sesión');
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  // Pantalla de espera si el estudio está pendiente
+  if (pendiente) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1f2937 0%, #374151 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Segoe UI, system-ui, sans-serif' }}>
+        <div style={{ width: '100%', maxWidth: '480px', background: 'white', borderRadius: '20px', padding: '48px 36px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+          <div style={{ width: '72px', height: '72px', background: '#fef3c7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+            <Clock size={36} color="#d97706" />
+          </div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1f2937', margin: '0 0 12px' }}>
+            Estudio pendiente de aprobación
+          </h2>
+          <p style={{ color: '#6b7280', fontSize: '0.95rem', lineHeight: 1.6, margin: '0 0 24px' }}>
+            Tu solicitud fue recibida correctamente. Estamos revisando los datos de tu estudio y te notificaremos por email cuando esté aprobado.
+          </p>
+          <div style={{ background: '#fef9ee', border: '1px solid #fde68a', borderRadius: '12px', padding: '16px', marginBottom: '28px' }}>
+            <p style={{ color: '#92400e', fontSize: '0.875rem', margin: 0 }}>
+              ⏱ El proceso de aprobación suele tardar menos de 24 horas hábiles.
+            </p>
+          </div>
+          <button
+            onClick={() => setPendiente(false)}
+            style={{ color: '#d97706', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
+          >
+            ← Volver al login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1f2937 0%, #374151 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Segoe UI, system-ui, sans-serif' }}>
@@ -35,10 +71,10 @@ export default function LoginPage() {
           <div style={{ width: '56px', height: '56px', background: 'linear-gradient(135deg, #1f2937, #374151)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
             <Scale size={28} color="#d97706" />
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1f2937' }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'white' }}>
             Turno<span style={{ color: '#d97706' }}>Lex</span>
           </h1>
-          <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '0.95rem' }}>
+          <p style={{ color: 'rgba(255,255,255,0.6)', marginTop: '4px', fontSize: '0.95rem' }}>
             Iniciá sesión en tu estudio
           </p>
         </div>
