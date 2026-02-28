@@ -6,7 +6,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "postinstall": "npm run build",
-    "start": "node dist/index.js"
+    "start": "node dist/Index.js"
   },
   "keywords": [],
   "author": "",
