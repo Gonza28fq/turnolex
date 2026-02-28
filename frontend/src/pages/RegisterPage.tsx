@@ -54,7 +54,7 @@ export default function RegisterPage() {
         telefono: form.telefono,
       });
 
-      if (result?.pendienteAprobacion) {
+      if ((result as any)?.pendienteAprobacion) {
         setPendiente(true);
       } else {
         navigate('/dashboard');
