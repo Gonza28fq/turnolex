@@ -5,10 +5,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendCancelacionTurno = exports.sendRecordatorioTurno = exports.sendConfirmacionTurno = exports.transporter = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
+const seguridad_1 = require("./seguridad");
+// para encabezados (remitente, asunto): sin comillas ni saltos de línea
+const cab = (v) => String(v ?? '').replace(/[\r\n"]/g, ' ').slice(0, 150);
 exports.transporter = nodemailer_1.default.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
+    service: 'gmail',
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -23,20 +24,20 @@ const sendConfirmacionTurno = async (data) => {
         hour: '2-digit', minute: '2-digit'
     });
     await exports.transporter.sendMail({
-        from: `"${data.estudioNombre}" <${process.env.EMAIL_USER}>`,
+        from: `"${cab(data.estudioNombre)}" <${process.env.EMAIL_USER}>`,
         to: data.clienteEmail,
-        subject: `✅ Turno confirmado — ${data.estudioNombre}`,
+        subject: `✅ Turno confirmado — ${cab(data.estudioNombre)}`,
         html: `
       <div style="font-family: Segoe UI, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 32px;">
         <div style="background: linear-gradient(135deg, #1f2937, #374151); padding: 28px; border-radius: 16px 16px 0 0; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 1.5rem;">
             ⚖️ Turno<span style="color: #d97706;">Lex</span>
           </h1>
-          <p style="color: rgba(255,255,255,0.7); margin: 8px 0 0; font-size: 0.9rem;">${data.estudioNombre}</p>
+          <p style="color: rgba(255,255,255,0.7); margin: 8px 0 0; font-size: 0.9rem;">${(0, seguridad_1.esc)(data.estudioNombre)}</p>
         </div>
         <div style="background: white; padding: 32px; border-radius: 0 0 16px 16px; border: 1px solid #e5e7eb; border-top: none;">
           <h2 style="color: #16a34a; margin: 0 0 8px;">✅ Turno confirmado</h2>
-          <p style="color: #6b7280; margin: 0 0 24px;">Hola <strong>${data.clienteNombre}</strong>, tu turno fue registrado exitosamente.</p>
+          <p style="color: #6b7280; margin: 0 0 24px;">Hola <strong>${(0, seguridad_1.esc)(data.clienteNombre)}</strong>, tu turno fue registrado exitosamente.</p>
           <div style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb; margin-bottom: 24px;">
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
@@ -49,20 +50,20 @@ const sendConfirmacionTurno = async (data) => {
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #6b7280; font-size: 0.875rem;">⏱ Duración</td>
-                <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${data.duracion} minutos</td>
+                <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${(0, seguridad_1.esc)(data.duracion)} minutos</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #6b7280; font-size: 0.875rem;">👨‍⚖️ Abogado</td>
-                <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${data.abogadoNombre}</td>
+                <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${(0, seguridad_1.esc)(data.abogadoNombre)}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #6b7280; font-size: 0.875rem;">📋 Motivo</td>
-                <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${data.motivo}</td>
+                <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${(0, seguridad_1.esc)(data.motivo)}</td>
               </tr>
               ${data.numeroCaso ? `
               <tr>
                 <td style="padding: 8px 0; color: #6b7280; font-size: 0.875rem;">🔢 Nº Caso</td>
-                <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${data.numeroCaso}</td>
+                <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${(0, seguridad_1.esc)(data.numeroCaso)}</td>
               </tr>` : ''}
             </table>
           </div>
@@ -87,20 +88,20 @@ const sendRecordatorioTurno = async (data) => {
         hour: '2-digit', minute: '2-digit'
     });
     await exports.transporter.sendMail({
-        from: `"${data.estudioNombre}" <${process.env.EMAIL_USER}>`,
+        from: `"${cab(data.estudioNombre)}" <${process.env.EMAIL_USER}>`,
         to: data.clienteEmail,
-        subject: `⏰ Recordatorio: tenés un turno mañana — ${data.estudioNombre}`,
+        subject: `⏰ Recordatorio: tenés un turno mañana — ${cab(data.estudioNombre)}`,
         html: `
       <div style="font-family: Segoe UI, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 32px;">
         <div style="background: linear-gradient(135deg, #1f2937, #374151); padding: 28px; border-radius: 16px 16px 0 0; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 1.5rem;">
             ⚖️ Turno<span style="color: #d97706;">Lex</span>
           </h1>
-          <p style="color: rgba(255,255,255,0.7); margin: 8px 0 0; font-size: 0.9rem;">${data.estudioNombre}</p>
+          <p style="color: rgba(255,255,255,0.7); margin: 8px 0 0; font-size: 0.9rem;">${(0, seguridad_1.esc)(data.estudioNombre)}</p>
         </div>
         <div style="background: white; padding: 32px; border-radius: 0 0 16px 16px; border: 1px solid #e5e7eb; border-top: none;">
           <h2 style="color: #d97706; margin: 0 0 8px;">⏰ Recordatorio de turno</h2>
-          <p style="color: #6b7280; margin: 0 0 24px;">Hola <strong>${data.clienteNombre}</strong>, te recordamos que mañana tenés un turno agendado.</p>
+          <p style="color: #6b7280; margin: 0 0 24px;">Hola <strong>${(0, seguridad_1.esc)(data.clienteNombre)}</strong>, te recordamos que mañana tenés un turno agendado.</p>
           <div style="background: #fef9ee; border-radius: 12px; padding: 20px; border: 1px solid #fde68a; margin-bottom: 24px;">
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
@@ -113,11 +114,11 @@ const sendRecordatorioTurno = async (data) => {
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #6b7280; font-size: 0.875rem;">👨‍⚖️ Abogado</td>
-                <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${data.abogadoNombre}</td>
+                <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${(0, seguridad_1.esc)(data.abogadoNombre)}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #6b7280; font-size: 0.875rem;">📋 Motivo</td>
-                <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${data.motivo}</td>
+                <td style="padding: 8px 0; color: #1f2937; font-weight: 600; font-size: 0.875rem;">${(0, seguridad_1.esc)(data.motivo)}</td>
               </tr>
             </table>
           </div>
@@ -139,9 +140,9 @@ const sendCancelacionTurno = async (data) => {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
     await exports.transporter.sendMail({
-        from: `"${data.estudioNombre}" <${process.env.EMAIL_USER}>`,
+        from: `"${cab(data.estudioNombre)}" <${process.env.EMAIL_USER}>`,
         to: data.clienteEmail,
-        subject: `❌ Turno cancelado — ${data.estudioNombre}`,
+        subject: `❌ Turno cancelado — ${cab(data.estudioNombre)}`,
         html: `
       <div style="font-family: Segoe UI, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 32px;">
         <div style="background: linear-gradient(135deg, #1f2937, #374151); padding: 28px; border-radius: 16px 16px 0 0; text-align: center;">
@@ -151,7 +152,7 @@ const sendCancelacionTurno = async (data) => {
         </div>
         <div style="background: white; padding: 32px; border-radius: 0 0 16px 16px; border: 1px solid #e5e7eb; border-top: none;">
           <h2 style="color: #ef4444; margin: 0 0 8px;">❌ Turno cancelado</h2>
-          <p style="color: #6b7280; margin: 0 0 24px;">Hola <strong>${data.clienteNombre}</strong>, tu turno del <strong>${fechaFormateada}</strong> fue cancelado.</p>
+          <p style="color: #6b7280; margin: 0 0 24px;">Hola <strong>${(0, seguridad_1.esc)(data.clienteNombre)}</strong>, tu turno del <strong>${fechaFormateada}</strong> fue cancelado.</p>
           <p style="color: #6b7280; font-size: 0.85rem;">Comunicate con el estudio para reprogramarlo.</p>
         </div>
       </div>

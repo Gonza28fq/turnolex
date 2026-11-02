@@ -7,6 +7,9 @@ exports.updateEstudio = exports.getEstudio = void 0;
 const fs_1 = __importDefault(require("fs"));
 const Estudio_1 = __importDefault(require("../models/Estudio"));
 const cloudinary_1 = require("../utils/cloudinary");
+const seguridad_1 = require("../utils/seguridad");
+const borrarTemporal = (req) => { if (req.file)
+    fs_1.default.unlink(req.file.path, () => { }); };
 // Obtener estudio
 const getEstudio = async (req, res) => {
     try {
@@ -18,7 +21,7 @@ const getEstudio = async (req, res) => {
         res.status(200).json({ success: true, data: { estudio } });
     }
     catch (error) {
-        res.status(500).json({ success: false, message: 'Error', error: error.message });
+        (0, seguridad_1.errorInterno)(res, 'Error al obtener el estudio', error);
     }
 };
 exports.getEstudio = getEstudio;
@@ -26,6 +29,16 @@ exports.getEstudio = getEstudio;
 const updateEstudio = async (req, res) => {
     try {
         const { nombre, email, telefono, direccion } = req.body;
+        if (req.params.id !== req.estudioId) {
+            borrarTemporal(req);
+            res.status(403).json({ success: false, message: 'No tenés permiso para modificar este estudio' });
+            return;
+        }
+        if ((nombre !== undefined && nombre !== '' && !(0, seguridad_1.esTexto)(nombre, 2, 120)) || (email !== undefined && email !== '' && !(0, seguridad_1.esEmail)(email))) {
+            borrarTemporal(req);
+            res.status(400).json({ success: false, message: 'Nombre o email inválidos' });
+            return;
+        }
         const estudio = await Estudio_1.default.findById(req.params.id);
         if (!estudio) {
             res.status(404).json({ success: false, message: 'Estudio no encontrado' });
@@ -48,7 +61,7 @@ const updateEstudio = async (req, res) => {
             const logoUrl = await (0, cloudinary_1.uploadImage)(req.file.path, 'logos');
             estudio.logo = logoUrl;
             // Borrar archivo temporal
-            fs_1.default.unlinkSync(req.file.path);
+            borrarTemporal(req);
         }
         await estudio.save();
         res.status(200).json({
@@ -58,7 +71,8 @@ const updateEstudio = async (req, res) => {
         });
     }
     catch (error) {
-        res.status(500).json({ success: false, message: 'Error al actualizar', error: error.message });
+        borrarTemporal(req);
+        (0, seguridad_1.errorInterno)(res, 'Error al actualizar el estudio', error);
     }
 };
 exports.updateEstudio = updateEstudio;

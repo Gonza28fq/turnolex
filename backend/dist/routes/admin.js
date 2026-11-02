@@ -6,131 +6,69 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const Estudio_1 = __importDefault(require("../models/Estudio"));
 const email_1 = require("../utils/email");
+const seguridad_1 = require("../utils/seguridad");
 const router = (0, express_1.Router)();
-const FRONTEND_URL = process.env.FRONTEND_URL;
-const BACKEND_URL = process.env.BACKEND_URL;
-// Middleware: solo el superadmin puede acceder (via secret en header o query)
-const isSuperAdmin = (req, res, next) => {
-    const secret = req.query.secret || req.headers['x-superadmin-secret'];
-    if (secret !== process.env.SUPERADMIN_SECRET) {
-        res.status(401).json({ success: false, message: 'No autorizado' });
-        return;
-    }
-    next();
-};
-// GET /api/admin/estudios?secret=xxx — listar estudios pendientes
-router.get('/estudios', isSuperAdmin, async (req, res) => {
+const pagina = (titulo, texto, color) => `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${(0, seguridad_1.esc)(titulo)}</title></head>
+<body style="margin:0;background:#f3f4f6"><div style="font-family:Segoe UI,sans-serif;max-width:500px;margin:80px auto;text-align:center;padding:32px;background:white;border-radius:16px;border:1px solid #e5e7eb">
+<h2 style="color:${color};margin:0 0 8px">${(0, seguridad_1.esc)(titulo)}</h2><p style="color:#6b7280">${(0, seguridad_1.esc)(texto)}</p></div></body></html>`;
+// GET /api/admin/estudios — listar estudios (secreto SOLO por header x-superadmin-secret)
+router.get('/estudios', seguridad_1.soloSuperadmin, async (req, res) => {
     try {
-        const { todos } = req.query;
-        const filter = todos === 'true' ? {} : { aprobado: false, activo: true };
+        const filter = req.query.todos === 'true' ? {} : { aprobado: false, activo: true };
         const estudios = await Estudio_1.default.find(filter).sort({ createdAt: -1 });
         res.json({ success: true, count: estudios.length, data: { estudios } });
     }
     catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        console.error('[admin/estudios]', err);
+        res.status(500).json({ success: false, message: 'Error al listar estudios' });
     }
 });
-// GET /api/admin/estudios/:id/aprobar — aprobar desde link del email
-router.get('/estudios/:id/aprobar', async (req, res) => {
+// Aprobar / rechazar desde el link del mail: el link lleva una firma (HMAC) que vence a los 7 días.
+// Sin firma válida no pasa nada. Solo actúa sobre estudios pendientes (no se puede "re-aprobar" uno rechazado).
+const accion = (tipo) => async (req, res) => {
+    const id = String(req.params.id);
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    if (!(0, seguridad_1.esObjectId)(id) || !(0, seguridad_1.verificarAccionEstudio)(id, tipo, req.query.v, req.query.f)) {
+        res.status(401).send(pagina('Link inválido o vencido', 'Pedí un link nuevo desde el panel de superadmin.', '#dc2626'));
+        return;
+    }
     try {
-        const estudio = await Estudio_1.default.findByIdAndUpdate(req.params.id, { aprobado: true }, { new: true });
+        const cambio = tipo === 'aprobar' ? { aprobado: true } : { activo: false };
+        const estudio = await Estudio_1.default.findOneAndUpdate({ _id: id, aprobado: false, activo: true }, cambio, { new: true });
         if (!estudio) {
-            res.status(404).send('<h2 style="font-family:sans-serif;color:#dc2626">Estudio no encontrado</h2>');
+            res.status(409).send(pagina('Sin cambios', 'El estudio no existe o ya fue aprobado o rechazado.', '#6b7280'));
             return;
         }
-        // Email al admin del estudio
+        const FRONTEND_URL = process.env.FRONTEND_URL;
         try {
             await email_1.transporter.sendMail({
                 from: `"TurnoLex" <${process.env.EMAIL_USER}>`,
                 to: estudio.email,
-                subject: '✅ Tu estudio fue aprobado — TurnoLex',
-                html: `
-          <div style="font-family: Segoe UI, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 32px;">
-            <div style="background: linear-gradient(135deg, #1f2937, #374151); padding: 28px; border-radius: 16px 16px 0 0; text-align: center;">
-              <h1 style="color: white; margin: 0; font-size: 1.5rem;">
-                ⚖️ Turno<span style="color: #d97706;">Lex</span>
-              </h1>
-            </div>
-            <div style="background: white; padding: 32px; border-radius: 0 0 16px 16px; border: 1px solid #e5e7eb; border-top: none;">
-              <h2 style="color: #16a34a; margin: 0 0 8px;">✅ ¡Tu estudio fue aprobado!</h2>
-              <p style="color: #6b7280; margin: 0 0 24px;">
-                El estudio <strong>${estudio.nombre}</strong> ya tiene acceso completo a TurnoLex.
-                Podés iniciar sesión y empezar a gestionar tus turnos.
-              </p>
-              <a href="${FRONTEND_URL}/login"
-                 style="display: inline-block; background: #d97706; color: white; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1rem;">
-                Iniciar sesión →
-              </a>
-            </div>
-            <p style="text-align: center; color: #9ca3af; font-size: 0.75rem; margin-top: 16px;">
-              © ${new Date().getFullYear()} TurnoLex — Sistema de gestión para estudios jurídicos
-            </p>
-          </div>
-        `,
+                subject: tipo === 'aprobar' ? 'Tu estudio fue aprobado — TurnoLex' : 'Solicitud de acceso a TurnoLex',
+                html: tipo === 'aprobar'
+                    ? `<div style="font-family:Segoe UI,sans-serif;max-width:600px;margin:0 auto;padding:32px">
+              <h2 style="color:#16a34a">¡Tu estudio fue aprobado!</h2>
+              <p style="color:#374151">El estudio <strong>${(0, seguridad_1.esc)(estudio.nombre)}</strong> ya tiene acceso a TurnoLex.</p>
+              <a href="${(0, seguridad_1.esc)(FRONTEND_URL)}/login" style="display:inline-block;background:#d97706;color:white;padding:12px 24px;text-decoration:none;border-radius:10px;font-weight:700">Iniciar sesión</a>
+            </div>`
+                    : `<div style="font-family:Segoe UI,sans-serif;max-width:600px;margin:0 auto;padding:32px">
+              <h2 style="color:#1f2937">Solicitud no aprobada</h2>
+              <p style="color:#374151">La solicitud del estudio <strong>${(0, seguridad_1.esc)(estudio.nombre)}</strong> no fue aprobada. Si creés que es un error, respondé este mail.</p>
+            </div>`,
             });
         }
         catch (emailErr) {
             console.error('Error enviando email al estudio:', emailErr);
         }
-        res.send(`
-      <div style="font-family: Segoe UI, sans-serif; max-width: 500px; margin: 80px auto; text-align: center; padding: 32px; background: white; border-radius: 16px; border: 1px solid #e5e7eb; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
-        <div style="font-size: 3rem; margin-bottom: 16px;">✅</div>
-        <h2 style="color: #16a34a; margin: 0 0 8px;">Estudio aprobado</h2>
-        <p style="color: #6b7280;">"${estudio.nombre}" ahora tiene acceso a TurnoLex.</p>
-        <p style="color: #9ca3af; font-size: 0.85rem;">Se envió un email de confirmación al estudio.</p>
-      </div>
-    `);
+        res.send(tipo === 'aprobar'
+            ? pagina('Estudio aprobado', `"${estudio.nombre}" ya tiene acceso. Se le avisó por mail.`, '#16a34a')
+            : pagina('Estudio rechazado', `"${estudio.nombre}" fue notificado.`, '#dc2626'));
     }
     catch (err) {
-        res.status(500).send('<h2 style="font-family:sans-serif;color:#dc2626">Error: ' + err.message + '</h2>');
+        console.error('[admin/accion]', err);
+        res.status(500).send(pagina('Error', 'No se pudo completar la acción.', '#dc2626'));
     }
-});
-// GET /api/admin/estudios/:id/rechazar — rechazar desde link del email
-router.get('/estudios/:id/rechazar', async (req, res) => {
-    try {
-        const estudio = await Estudio_1.default.findByIdAndUpdate(req.params.id, { activo: false }, { new: true });
-        if (!estudio) {
-            res.status(404).send('<h2 style="font-family:sans-serif;color:#dc2626">Estudio no encontrado</h2>');
-            return;
-        }
-        try {
-            await email_1.transporter.sendMail({
-                from: `"TurnoLex" <${process.env.EMAIL_USER}>`,
-                to: estudio.email,
-                subject: 'Solicitud de acceso a TurnoLex',
-                html: `
-          <div style="font-family: Segoe UI, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; padding: 32px;">
-            <div style="background: linear-gradient(135deg, #1f2937, #374151); padding: 28px; border-radius: 16px 16px 0 0; text-align: center;">
-              <h1 style="color: white; margin: 0; font-size: 1.5rem;">
-                ⚖️ Turno<span style="color: #d97706;">Lex</span>
-              </h1>
-            </div>
-            <div style="background: white; padding: 32px; border-radius: 0 0 16px 16px; border: 1px solid #e5e7eb; border-top: none;">
-              <h2 style="color: #1f2937; margin: 0 0 8px;">Solicitud no aprobada</h2>
-              <p style="color: #6b7280; margin: 0 0 16px;">
-                Lamentablemente la solicitud para el estudio <strong>${estudio.nombre}</strong> no fue aprobada en esta ocasión.
-              </p>
-              <p style="color: #6b7280; font-size: 0.875rem;">
-                Si creés que es un error o querés más información, respondé este email y nos ponemos en contacto.
-              </p>
-            </div>
-          </div>
-        `,
-            });
-        }
-        catch (emailErr) {
-            console.error('Error enviando email al estudio:', emailErr);
-        }
-        res.send(`
-      <div style="font-family: Segoe UI, sans-serif; max-width: 500px; margin: 80px auto; text-align: center; padding: 32px; background: white; border-radius: 16px; border: 1px solid #e5e7eb; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
-        <div style="font-size: 3rem; margin-bottom: 16px;">❌</div>
-        <h2 style="color: #dc2626; margin: 0 0 8px;">Estudio rechazado</h2>
-        <p style="color: #6b7280;">"${estudio.nombre}" fue notificado del rechazo.</p>
-      </div>
-    `);
-    }
-    catch (err) {
-        res.status(500).send('<h2 style="font-family:sans-serif;color:#dc2626">Error: ' + err.message + '</h2>');
-    }
-});
+};
+router.get('/estudios/:id/aprobar', accion('aprobar'));
+router.get('/estudios/:id/rechazar', accion('rechazar'));
 exports.default = router;

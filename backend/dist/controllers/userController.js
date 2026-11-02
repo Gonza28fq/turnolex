@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -39,28 +6,44 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.changePassword = exports.deleteUsuario = exports.updateUsuario = exports.registrarCliente = exports.crearAbogado = exports.getUsuarioById = exports.getUsuarios = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const User_1 = __importDefault(require("../models/User"));
+const Estudio_1 = __importDefault(require("../models/Estudio"));
+const Turno_1 = __importDefault(require("../models/Turno"));
+const seguridad_1 = require("../utils/seguridad");
+const authController_1 = require("./authController");
+const ROLES_FILTRABLES = ['admin', 'abogado', 'cliente'];
+const validarAlta = (body) => {
+    const { nombre, email, password, telefono } = body;
+    if (!(0, seguridad_1.esTexto)(nombre, 2, 120) || !(0, seguridad_1.esEmail)(email) || typeof password !== 'string')
+        return 'Nombre, email válido y contraseña son obligatorios';
+    if (password.length < authController_1.PASSWORD_MIN || password.length > 128)
+        return `La contraseña debe tener al menos ${authController_1.PASSWORD_MIN} caracteres`;
+    if (telefono !== undefined && telefono !== '' && !(0, seguridad_1.esTexto)(telefono, 6, 30))
+        return 'Teléfono inválido';
+    return null;
+};
 // Obtener todos los usuarios del estudio
 const getUsuarios = async (req, res) => {
     try {
         const { rol } = req.query;
         const filter = { estudio: req.estudioId };
-        if (rol)
+        if (typeof rol === 'string' && ROLES_FILTRABLES.includes(rol))
             filter.rol = rol;
         const usuarios = await User_1.default.find(filter).select('-password').sort({ createdAt: -1 });
         res.status(200).json({ success: true, count: usuarios.length, data: { usuarios } });
     }
     catch (error) {
-        res.status(500).json({ success: false, message: 'Error al obtener usuarios', error: error.message });
+        (0, seguridad_1.errorInterno)(res, 'Error al obtener usuarios', error);
     }
 };
 exports.getUsuarios = getUsuarios;
 // Obtener usuario por ID
 const getUsuarioById = async (req, res) => {
     try {
-        const usuario = await User_1.default.findOne({
-            _id: req.params.id,
-            estudio: req.estudioId
-        }).select('-password');
+        if (!(0, seguridad_1.esObjectId)(req.params.id)) {
+            res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+            return;
+        }
+        const usuario = await User_1.default.findOne({ _id: req.params.id, estudio: req.estudioId }).select('-password');
         if (!usuario) {
             res.status(404).json({ success: false, message: 'Usuario no encontrado' });
             return;
@@ -68,69 +51,64 @@ const getUsuarioById = async (req, res) => {
         res.status(200).json({ success: true, data: { usuario } });
     }
     catch (error) {
-        res.status(500).json({ success: false, message: 'Error al obtener usuario', error: error.message });
+        (0, seguridad_1.errorInterno)(res, 'Error al obtener usuario', error);
     }
 };
 exports.getUsuarioById = getUsuarioById;
 // Crear abogado (solo admin)
 const crearAbogado = async (req, res) => {
     try {
-        const { nombre, email, password, telefono } = req.body;
-        if (!nombre || !email || !password) {
-            res.status(400).json({ success: false, message: 'Nombre, email y contraseña son obligatorios' });
+        const error = validarAlta(req.body);
+        if (error) {
+            res.status(400).json({ success: false, message: error });
             return;
         }
-        const existe = await User_1.default.findOne({ email });
-        if (existe) {
+        const { nombre, password, telefono } = req.body;
+        const email = req.body.email.trim().toLowerCase();
+        if (await User_1.default.findOne({ email })) {
             res.status(400).json({ success: false, message: 'El email ya está registrado' });
             return;
         }
-        const hashedPassword = await bcryptjs_1.default.hash(password, 12);
         const abogado = await User_1.default.create({
-            nombre,
+            nombre: nombre.trim(),
             email,
-            password: hashedPassword,
+            password: await bcryptjs_1.default.hash(password, 12),
             rol: 'abogado',
             estudio: req.estudioId,
             telefono,
         });
         const abogadoSinPassword = await User_1.default.findById(abogado._id).select('-password');
-        res.status(201).json({
-            success: true,
-            message: 'Abogado creado exitosamente',
-            data: { usuario: abogadoSinPassword }
-        });
+        res.status(201).json({ success: true, message: 'Abogado creado exitosamente', data: { usuario: abogadoSinPassword } });
     }
     catch (error) {
-        res.status(500).json({ success: false, message: 'Error al crear abogado', error: error.message });
+        (0, seguridad_1.errorInterno)(res, 'Error al crear abogado', error);
     }
 };
 exports.crearAbogado = crearAbogado;
-// Registrar cliente (público)
+// Registrar cliente (público, desde el link del estudio)
 const registrarCliente = async (req, res) => {
     try {
-        const { nombre, email, password, telefono, estudioSlug } = req.body;
-        if (!nombre || !email || !password || !estudioSlug) {
-            res.status(400).json({ success: false, message: 'Todos los campos son obligatorios' });
+        const error = validarAlta(req.body);
+        if (error || !(0, seguridad_1.esTexto)(req.body.estudioSlug, 1, 120)) {
+            res.status(400).json({ success: false, message: error || 'Falta el estudio' });
             return;
         }
-        // Buscar el estudio por slug
-        const Estudio = (await Promise.resolve().then(() => __importStar(require('../models/Estudio')))).default;
-        const estudio = await Estudio.findOne({ slug: estudioSlug, activo: true });
+        const { nombre, password, telefono, estudioSlug } = req.body;
+        const email = req.body.email.trim().toLowerCase();
+        // solo estudios activos Y aprobados aceptan clientes
+        const estudio = await Estudio_1.default.findOne({ slug: estudioSlug, activo: true, aprobado: true });
         if (!estudio) {
             res.status(404).json({ success: false, message: 'Estudio no encontrado' });
             return;
         }
-        const existe = await User_1.default.findOne({ email });
-        if (existe) {
+        if (await User_1.default.findOne({ email })) {
             res.status(400).json({ success: false, message: 'El email ya está registrado' });
             return;
         }
-        const hashedPassword = await bcryptjs_1.default.hash(password, 12);
         const cliente = await User_1.default.create({
-            nombre,
+            nombre: nombre.trim(),
             email,
-            password: hashedPassword,
+            password: await bcryptjs_1.default.hash(password, 12),
             rol: 'cliente',
             estudio: estudio._id,
             telefono,
@@ -138,80 +116,95 @@ const registrarCliente = async (req, res) => {
         res.status(201).json({
             success: true,
             message: 'Cliente registrado exitosamente',
-            data: {
-                usuario: {
-                    id: cliente._id,
-                    nombre: cliente.nombre,
-                    email: cliente.email,
-                    rol: cliente.rol,
-                }
-            }
+            data: { usuario: { id: cliente._id, nombre: cliente.nombre, email: cliente.email, rol: cliente.rol } }
         });
     }
     catch (error) {
-        res.status(500).json({ success: false, message: 'Error al registrar cliente', error: error.message });
+        (0, seguridad_1.errorInterno)(res, 'Error al registrar cliente', error);
     }
 };
 exports.registrarCliente = registrarCliente;
-// Actualizar usuario
+// Actualizar usuario (admin)
 const updateUsuario = async (req, res) => {
     try {
         const { nombre, telefono, activo } = req.body;
-        const usuario = await User_1.default.findOne({
-            _id: req.params.id,
-            estudio: req.estudioId
-        });
+        if (!(0, seguridad_1.esObjectId)(req.params.id)) {
+            res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+            return;
+        }
+        if (nombre !== undefined && !(0, seguridad_1.esTexto)(nombre, 2, 120)) {
+            res.status(400).json({ success: false, message: 'Nombre inválido' });
+            return;
+        }
+        if (activo !== undefined && typeof activo !== 'boolean') {
+            res.status(400).json({ success: false, message: 'Valor inválido para activo' });
+            return;
+        }
+        if (activo === false && req.params.id === req.userId) {
+            res.status(400).json({ success: false, message: 'No podés desactivarte a vos mismo' });
+            return;
+        }
+        const usuario = await User_1.default.findOne({ _id: req.params.id, estudio: req.estudioId });
         if (!usuario) {
             res.status(404).json({ success: false, message: 'Usuario no encontrado' });
             return;
         }
         if (nombre !== undefined)
-            usuario.nombre = nombre;
+            usuario.nombre = nombre.trim();
         if (telefono !== undefined)
             usuario.telefono = telefono;
         if (activo !== undefined)
             usuario.activo = activo;
         await usuario.save();
         const usuarioActualizado = await User_1.default.findById(usuario._id).select('-password');
-        res.status(200).json({
-            success: true,
-            message: 'Usuario actualizado',
-            data: { usuario: usuarioActualizado }
-        });
+        res.status(200).json({ success: true, message: 'Usuario actualizado', data: { usuario: usuarioActualizado } });
     }
     catch (error) {
-        res.status(500).json({ success: false, message: 'Error al actualizar usuario', error: error.message });
+        (0, seguridad_1.errorInterno)(res, 'Error al actualizar usuario', error);
     }
 };
 exports.updateUsuario = updateUsuario;
-// Eliminar usuario
+// Eliminar usuario (admin). Si tiene turnos no se borra: se desactiva, para no dejar turnos huérfanos.
 const deleteUsuario = async (req, res) => {
     try {
-        const usuario = await User_1.default.findOneAndDelete({
-            _id: req.params.id,
-            estudio: req.estudioId
-        });
+        if (!(0, seguridad_1.esObjectId)(req.params.id)) {
+            res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+            return;
+        }
+        if (req.params.id === req.userId) {
+            res.status(400).json({ success: false, message: 'No podés eliminar tu propio usuario' });
+            return;
+        }
+        const usuario = await User_1.default.findOne({ _id: req.params.id, estudio: req.estudioId });
         if (!usuario) {
             res.status(404).json({ success: false, message: 'Usuario no encontrado' });
             return;
         }
+        const tieneTurnos = await Turno_1.default.exists({ $or: [{ abogado: usuario._id }, { cliente: usuario._id }] });
+        if (tieneTurnos) {
+            usuario.activo = false;
+            await usuario.save();
+            res.status(200).json({ success: true, message: 'El usuario tiene turnos: se desactivó en lugar de eliminarse', data: { desactivado: true } });
+            return;
+        }
+        await usuario.deleteOne();
         res.status(200).json({ success: true, message: 'Usuario eliminado exitosamente' });
     }
     catch (error) {
-        res.status(500).json({ success: false, message: 'Error al eliminar usuario', error: error.message });
+        (0, seguridad_1.errorInterno)(res, 'Error al eliminar usuario', error);
     }
 };
 exports.deleteUsuario = deleteUsuario;
-// Cambiar contraseña
+// Cambiar la contraseña propia
 const changePassword = async (req, res) => {
     try {
         const { passwordActual, passwordNueva } = req.body;
-        if (!passwordActual || !passwordNueva) {
+        if (typeof passwordActual !== 'string' || typeof passwordNueva !== 'string' || !passwordActual || !passwordNueva) {
             res.status(400).json({ success: false, message: 'Todos los campos son obligatorios' });
             return;
         }
-        if (passwordNueva.length < 6) {
-            res.status(400).json({ success: false, message: 'La contraseña debe tener al menos 6 caracteres' });
+        if (passwordNueva.length < authController_1.PASSWORD_MIN || passwordNueva.length > 128) {
+            res.status(400).json({ success: false, message: `La contraseña debe tener al menos ${authController_1.PASSWORD_MIN} caracteres` });
             return;
         }
         const user = await User_1.default.findById(req.userId);
@@ -219,9 +212,8 @@ const changePassword = async (req, res) => {
             res.status(404).json({ success: false, message: 'Usuario no encontrado' });
             return;
         }
-        const ok = await bcryptjs_1.default.compare(passwordActual, user.password);
-        if (!ok) {
-            res.status(401).json({ success: false, message: 'La contraseña actual es incorrecta' });
+        if (!(await bcryptjs_1.default.compare(passwordActual, user.password))) {
+            res.status(400).json({ success: false, message: 'La contraseña actual es incorrecta' }); // 400, no 401: el 401 cierra la sesión en el front
             return;
         }
         user.password = await bcryptjs_1.default.hash(passwordNueva, 12);
@@ -229,7 +221,7 @@ const changePassword = async (req, res) => {
         res.status(200).json({ success: true, message: 'Contraseña actualizada correctamente' });
     }
     catch (error) {
-        res.status(500).json({ success: false, message: 'Error al cambiar contraseña', error: error.message });
+        (0, seguridad_1.errorInterno)(res, 'Error al cambiar contraseña', error);
     }
 };
 exports.changePassword = changePassword;
