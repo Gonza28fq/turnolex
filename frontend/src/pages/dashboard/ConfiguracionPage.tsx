@@ -84,8 +84,8 @@ export default function ConfiguracionPage() {
       setPassError('Las contraseñas no coinciden');
       return;
     }
-    if (passForm.passwordNueva.length < 6) {
-      setPassError('La contraseña debe tener al menos 6 caracteres');
+    if (passForm.passwordNueva.length < 8) {
+      setPassError('La contraseña debe tener al menos 8 caracteres');
       return;
     }
     setPassLoading(true);
@@ -211,7 +211,7 @@ export default function ConfiguracionPage() {
           <form onSubmit={handlePasswordSubmit}>
             {[
               { label: 'Contraseña actual', key: 'passwordActual', placeholder: 'Tu contraseña actual' },
-              { label: 'Nueva contraseña', key: 'passwordNueva', placeholder: 'Mínimo 6 caracteres' },
+              { label: 'Nueva contraseña', key: 'passwordNueva', placeholder: 'Mínimo 8 caracteres' },
               { label: 'Confirmar nueva contraseña', key: 'confirmar', placeholder: 'Repetí la nueva contraseña' },
             ].map(({ label, key, placeholder }) => (
               <div key={key} style={{ marginBottom: '16px' }}>

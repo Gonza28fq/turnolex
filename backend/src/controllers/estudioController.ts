@@ -3,6 +3,9 @@ import fs from 'fs';
 import Estudio from '../models/Estudio';
 import { AuthRequest } from '../middleware/auth';
 import { uploadImage } from '../utils/cloudinary';
+import { errorInterno, esEmail, esTexto } from '../utils/seguridad';
+
+const borrarTemporal = (req: AuthRequest) => { if (req.file) fs.unlink(req.file.path, () => {}); };
 
 // Obtener estudio
 export const getEstudio = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -13,8 +16,8 @@ export const getEstudio = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
     res.status(200).json({ success: true, data: { estudio } });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: 'Error', error: error.message });
+  } catch (error) {
+    errorInterno(res, 'Error al obtener el estudio', error);
   }
 };
 
@@ -22,6 +25,16 @@ export const getEstudio = async (req: AuthRequest, res: Response): Promise<void>
 export const updateEstudio = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { nombre, email, telefono, direccion } = req.body;
+    if (req.params.id !== req.estudioId) {
+      borrarTemporal(req);
+      res.status(403).json({ success: false, message: 'No tenés permiso para modificar este estudio' });
+      return;
+    }
+    if ((nombre !== undefined && nombre !== '' && !esTexto(nombre, 2, 120)) || (email !== undefined && email !== '' && !esEmail(email))) {
+      borrarTemporal(req);
+      res.status(400).json({ success: false, message: 'Nombre o email inválidos' });
+      return;
+    }
     const estudio = await Estudio.findById(req.params.id);
 
     if (!estudio) {
@@ -44,7 +57,7 @@ export const updateEstudio = async (req: AuthRequest, res: Response): Promise<vo
       const logoUrl = await uploadImage(req.file.path, 'logos');
       estudio.logo = logoUrl;
       // Borrar archivo temporal
-      fs.unlinkSync(req.file.path);
+      borrarTemporal(req);
     }
 
     await estudio.save();
@@ -54,7 +67,8 @@ export const updateEstudio = async (req: AuthRequest, res: Response): Promise<vo
       message: 'Estudio actualizado correctamente',
       data: { estudio }
     });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: 'Error al actualizar', error: error.message });
+  } catch (error) {
+    borrarTemporal(req);
+    errorInterno(res, 'Error al actualizar el estudio', error);
   }
 };

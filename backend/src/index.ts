@@ -1,45 +1,22 @@
-import express from 'express';
-import mongoose from 'mongoose';
-import cors from 'cors';
 import dotenv from 'dotenv';
-import authRoutes from './routes/auth';
-import turnoRoutes from './routes/turnos';
-import userRoutes from './routes/users';
-import estudioRoutes from './routes/estudios';
-import adminRoutes from './routes/admin';
-
 dotenv.config();
 
-const app = express();
+import mongoose from 'mongoose';
+import { crearApp } from './app';
+
 const PORT = process.env.PORT || 5000;
+const app = crearApp();
 
-// Middlewares
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  console.warn('⚠️ JWT_SECRET falta o tiene menos de 32 caracteres: conviene usar uno largo y aleatorio');
+}
 
-// Conexión a MongoDB
 mongoose.connect(process.env.MONGODB_URI as string)
-  .then(() => console.log('✅ MongoDB conectado'))
-  .catch((err) => console.error('❌ Error MongoDB:', err));
+  .then(() => console.log('MongoDB conectado'))
+  .catch((err) => console.error('Error MongoDB:', err));
 
-// Rutas
-app.get('/', (req, res) => {
-  res.json({ message: '⚖️ TurnoLex API funcionando' });
-});
-
-app.use('/api/auth', authRoutes);
-app.use('/api/turnos', turnoRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/estudios', estudioRoutes);
-app.use('/api/admin', adminRoutes);
-
-// Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+  console.log(`Servidor en el puerto ${PORT}`);
 });
 
 export default app;

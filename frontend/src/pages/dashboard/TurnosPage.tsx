@@ -26,8 +26,11 @@ export default function TurnosPage() {
   const [selectedTurno, setSelectedTurno] = useState<Turno | null>(null);
   const [loading, setLoading] = useState(false);
   const [abogados, setAbogados] = useState<any[]>([]);
+  const [clientes, setClientes] = useState<any[]>([]);
+  const [bajandoPdf, setBajandoPdf] = useState(false);
   const [form, setForm] = useState({
     abogadoId: '',
+    clienteId: '',
     fecha: '',
     hora: '',
     duracion: 60,
@@ -39,7 +42,32 @@ export default function TurnosPage() {
   useEffect(() => {
     fetchTurnos();
     fetchAbogados();
+    fetchClientes();
   }, []);
+
+  const fetchClientes = async () => {
+    try {
+      const res = await api.get('/users?rol=cliente');
+      setClientes(res.data.data.usuarios.filter((c: any) => c.activo));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // El PDF necesita el token: se baja con la API y se abre como archivo (antes apuntaba a localhost)
+  const abrirPdf = async (id: string) => {
+    setBajandoPdf(true);
+    try {
+      const res = await api.get(`/turnos/${id}/pdf`, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      window.open(url, '_blank', 'noopener');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      alert('No se pudo generar el PDF');
+    } finally {
+      setBajandoPdf(false);
+    }
+  };
 
   const fetchTurnos = async () => {
     try {
@@ -66,6 +94,7 @@ export default function TurnosPage() {
       const fechaCompleta = `${form.fecha}T${form.hora}:00`;
       await api.post('/turnos', {
         abogadoId: form.abogadoId,
+        clienteId: form.clienteId,
         fecha: fechaCompleta,
         duracion: form.duracion,
         motivo: form.motivo,
@@ -74,7 +103,7 @@ export default function TurnosPage() {
       });
       await fetchTurnos();
       setShowModal(false);
-      setForm({ abogadoId: '', fecha: '', hora: '', duracion: 60, motivo: '', notas: '', numeroCaso: '' });
+      setForm({ abogadoId: '', clienteId: '', fecha: '', hora: '', duracion: 60, motivo: '', notas: '', numeroCaso: '' });
     } catch (err: any) {
       alert(err.response?.data?.message || 'Error al crear turno');
     } finally {
@@ -182,6 +211,19 @@ export default function TurnosPage() {
                   <option value="">Seleccioná un abogado</option>
                   {abogados.map(a => (
                     <option key={a._id} value={a._id}>{a.nombre}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={labelStyle}>
+                  <User size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                  Cliente
+                </label>
+                <select value={form.clienteId} onChange={e => setForm({ ...form, clienteId: e.target.value })} required style={inputStyle}>
+                  <option value="">{clientes.length ? 'Seleccioná un cliente' : 'Primero cargá un cliente en Clientes'}</option>
+                  {clientes.map(c => (
+                    <option key={c._id} value={c._id}>{c.nombre}{c.telefono ? ` · ${c.telefono}` : ''}</option>
                   ))}
                 </select>
               </div>
@@ -360,10 +402,10 @@ export default function TurnosPage() {
             </div>
 
             {/* BOTÓN PDF */}
-            <a
-              href={`http://localhost:5000/api/turnos/${selectedTurno._id}/pdf`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => abrirPdf(selectedTurno._id)}
+              disabled={bajandoPdf}
               style={{
                 display: 'block',
                 width: '100%',
@@ -381,8 +423,8 @@ export default function TurnosPage() {
                 boxSizing: 'border-box',
               }}
             >
-              📄 Descargar PDF
-            </a>
+              {bajandoPdf ? 'Generando PDF…' : 'Descargar PDF'}
+            </button>
 
             <button
               onClick={() => setSelectedTurno(null)}

@@ -228,7 +228,7 @@ export default function ClientesPage() {
               {[
                 { label: 'Nombre completo', key: 'nombre', type: 'text', placeholder: 'Ej: Juan García' },
                 { label: 'Email', key: 'email', type: 'email', placeholder: 'juan@email.com' },
-                { label: 'Contraseña temporal', key: 'password', type: 'password', placeholder: 'Mínimo 6 caracteres' },
+                { label: 'Contraseña temporal', key: 'password', type: 'password', placeholder: 'Mínimo 8 caracteres' },
                 { label: 'Teléfono (opcional)', key: 'telefono', type: 'tel', placeholder: '+54 381 000-0000' },
               ].map(({ label, key, type, placeholder }) => (
                 <div key={key} style={{ marginBottom: '16px' }}>

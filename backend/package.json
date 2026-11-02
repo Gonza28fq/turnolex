@@ -6,7 +6,8 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "postinstall": "npm run build",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "test": "node --require ts-node/register/transpile-only --test tests/*.test.ts"
   },
   "keywords": [],
   "author": "",
@@ -16,18 +17,6 @@
     "node": "22.x"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "cloudinary": "^2.9.0",
-    "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
-    "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3",
-    "mercadopago": "^2.12.0",
-    "mongoose": "^9.2.3",
-    "multer": "^2.1.0",
-    "nodemailer": "^8.0.1",
-    "pdfkit": "^0.17.2",
-    "typescript": "^5.9.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
@@ -36,7 +25,25 @@
     "@types/multer": "^2.0.0",
     "@types/nodemailer": "^7.0.11",
     "@types/pdfkit": "^0.17.5",
-    "ts-node-dev": "^2.0.0"
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.9.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.3",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mercadopago": "^2.12.0",
+    "mongoose": "^9.2.3",
+    "multer": "^2.1.0",
+    "nodemailer": "^8.0.1",
+    "pdfkit": "^0.17.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/supertest": "^7.2.1",
+    "mongodb-memory-server": "^11.3.0",
+    "supertest": "^7.3.1"
+  }
 }

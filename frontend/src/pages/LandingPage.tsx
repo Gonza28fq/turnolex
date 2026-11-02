@@ -70,10 +70,10 @@ export default function LandingPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
             {[
               { icon: Calendar, title: 'Calendario Inteligente', desc: 'Vista semanal y mensual por abogado. Evitá conflictos de horario automáticamente.', bg: '#fef3c7', color: '#d97706' },
-              { icon: Users, title: 'Gestión de Clientes', desc: 'Registrá clientes, historial de turnos y documentos adjuntos en un solo lugar.', bg: '#f3f4f6', color: '#1f2937' },
+              { icon: Users, title: 'Gestión de Clientes', desc: 'Registrá clientes y consultá el historial de turnos de cada uno en un solo lugar.', bg: '#f3f4f6', color: '#1f2937' },
               { icon: FileText, title: 'PDF Automático', desc: 'Generá comprobantes de turno en PDF al instante con los datos del estudio.', bg: '#f0fdf4', color: '#16a34a' },
-              { icon: CreditCard, title: 'Cobro de Seña', desc: 'Integrá MercadoPago para cobrar señas al reservar el turno online.', bg: '#fef9ee', color: '#d97706' },
-              { icon: Shield, title: 'Multi-tenant', desc: 'Cada estudio tiene su propio espacio aislado y seguro. Datos 100% privados.', bg: '#f3f4f6', color: '#374151' },
+              { icon: CreditCard, title: 'Cobro de Seña (próximamente)', desc: 'Vamos a sumar MercadoPago para cobrar la seña al reservar el turno online.', bg: '#fef9ee', color: '#d97706' },
+              { icon: Shield, title: 'Multi-tenant', desc: 'Cada estudio trabaja en su propio espacio: sus abogados, clientes y turnos no se mezclan con los de otros estudios.', bg: '#f3f4f6', color: '#374151' },
               { icon: Scale, title: 'Roles y Permisos', desc: 'Admin, abogados y clientes con accesos diferenciados y seguros.', bg: '#fef3c7', color: '#d97706' },
             ].map(({ icon: Icon, title, desc, bg, color }) => (
               <div key={title} style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb', transition: 'box-shadow 0.2s' }}>
